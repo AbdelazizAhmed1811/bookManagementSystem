@@ -1,0 +1,1 @@
+1- move security key from jwt service to the env file or secure place
