@@ -1,8 +1,5 @@
 package com.example.First_sprint_boot.dto;
 
-import com.example.First_sprint_boot.helper.Role;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import lombok.*;
 import jakarta.validation.constraints.*;
 
@@ -37,7 +34,7 @@ public class SignUpDto {
     private String confirmPassword;
 
     @AssertTrue(message = "Passwords do not match")
-    public boolean isPasswordsMatching() {
+    private boolean isPasswordsMatching() {
         return password != null && password.equals(confirmPassword);
     }
 
