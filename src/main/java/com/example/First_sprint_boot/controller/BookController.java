@@ -4,12 +4,18 @@ import com.example.First_sprint_boot.dto.BookDto;
 import com.example.First_sprint_boot.dto.BookUpdateDto;
 import com.example.First_sprint_boot.entity.Book;
 import com.example.First_sprint_boot.service.BookService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -20,8 +26,15 @@ public class BookController {
     final BookService bookService;
 
     @PostMapping
-//    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> addBook(@RequestBody BookDto bookDTO) {
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<?> addBook(@Valid @RequestBody BookDto bookDTO, BindingResult bindingResult) {
+
+
+        Optional<Map<String, String>> errors = ValidateDto(bindingResult);
+        if (errors.isPresent()) {
+            return new ResponseEntity<>(errors.get(), HttpStatus.BAD_REQUEST);
+        }
+
         Optional<Book> book = bookService.createBook(bookDTO);
 
         if (book.isEmpty()) {
@@ -57,6 +70,7 @@ public class BookController {
 
 
     @DeleteMapping("/{bookId}")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<Void> deleteBook(@PathVariable Long bookId) {
         boolean isDeleted = bookService.deleteBookById(bookId);
 
@@ -69,7 +83,16 @@ public class BookController {
 
 
     @PutMapping("/{bookId}")
-    public ResponseEntity<?> updateBook(@PathVariable Long bookId, @RequestBody BookUpdateDto bookUpdateDto) {
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<?> updateBook(@PathVariable Long bookId,
+                                        @Valid @RequestBody BookUpdateDto bookUpdateDto,
+                                        BindingResult bindingResult) {
+
+        Optional<Map<String, String>> errors = ValidateDto(bindingResult);
+        if (errors.isPresent()) {
+            return new ResponseEntity<>(errors.get(), HttpStatus.BAD_REQUEST);
+        }
+
 
         Optional<Book> updatedBook = bookService.updateBook(bookId, bookUpdateDto);
 
@@ -92,6 +115,7 @@ public class BookController {
 
 
     @PatchMapping("/{bookId}/availability")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<Book> updateAvailability(@PathVariable Long bookId, @RequestParam boolean available) {
         Optional<Book> updatedBook = bookService.updateAvailability(bookId, available);
 
@@ -109,6 +133,19 @@ public class BookController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(books);
+    }
+
+
+    private Optional<Map<String, String>> ValidateDto(BindingResult result) {
+        if (!result.hasErrors()) {
+            return Optional.empty();
+        }
+        // Collect all validation error messages
+        Map<String, String> errors = new HashMap<>();
+        for (FieldError error : result.getFieldErrors()) {
+            errors.put(error.getField(), error.getDefaultMessage());
+        }
+        return Optional.of(errors);
     }
 
 
